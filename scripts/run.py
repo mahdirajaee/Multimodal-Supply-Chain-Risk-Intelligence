@@ -16,7 +16,7 @@ def run_api_server():
     logger.info("Starting API server...")
     try:
         result = subprocess.run([
-            sys.executable, "main.py", "--config", "config/default.yaml", "mode=api"
+            sys.executable, "main.py", "mode=api"
         ], cwd=Path(__file__).parent.parent, check=True)
     except subprocess.CalledProcessError as e:
         logger.error(f"API server failed: {e}")
@@ -40,7 +40,7 @@ def run_training():
     logger.info("Starting model training...")
     try:
         result = subprocess.run([
-            sys.executable, "main.py", "--config", "config/default.yaml", "mode=train"
+            sys.executable, "main.py", "mode=train"
         ], cwd=Path(__file__).parent.parent, check=True)
         logger.info("Training completed successfully")
     except subprocess.CalledProcessError as e:

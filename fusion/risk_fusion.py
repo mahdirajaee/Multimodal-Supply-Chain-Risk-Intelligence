@@ -37,8 +37,18 @@ class RiskFusionEngine:
                 features = pred.mean(dim=1) if pred.dim() > 2 else pred
             else:
                 features = pred.unsqueeze(0) if pred.dim() == 1 else pred
+            
+            # Flatten to ensure consistent dimensions
+            if features.dim() > 2:
+                features = features.flatten(start_dim=1)
+            elif features.dim() == 1:
+                features = features.unsqueeze(0)
+                
             feature_list.append(features)
-        return torch.cat(feature_list, dim=-1)
+        
+        # Concatenate all features
+        concatenated = torch.cat(feature_list, dim=-1)
+        return concatenated
         
     def _calculate_risk_scores(self, fused_output: torch.Tensor) -> Dict[str, float]:
         risk_prob = torch.sigmoid(fused_output).item()
@@ -83,7 +93,8 @@ class MultiModalTransformer(nn.Module):
         super().__init__()
         self.hidden_size = hidden_size
         
-        self.feature_projection = nn.Linear(1024, hidden_size)
+        # Dynamic feature projection - will be initialized on first forward pass
+        self.feature_projection = None
         self.positional_encoding = nn.Parameter(torch.randn(1, 1000, hidden_size))
         
         encoder_layer = nn.TransformerEncoderLayer(
