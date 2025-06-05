@@ -39,7 +39,7 @@ class RiskPredictor:
             'timestamp': datetime.now().isoformat(),
             'timeframe_days': timeframe_days,
             'risk_scores': risk_scores,
-            'individual_predictions': {k: v.tolist() for k, v in predictions.items()},
+            'individual_predictions': {k: v.mean().item() for k, v in predictions.items()},
             'recommendations': self._generate_recommendations(risk_scores)
         }
         

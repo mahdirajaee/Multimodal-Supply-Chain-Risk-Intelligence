@@ -34,7 +34,7 @@ class RiskPredictionResponse(BaseModel):
     timestamp: str
     timeframe_days: int
     risk_scores: Dict[str, float]
-    individual_predictions: Dict[str, List[float]]
+    individual_predictions: Dict[str, float]
     recommendations: List[str]
     status: str = "success"
 

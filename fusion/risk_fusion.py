@@ -115,8 +115,15 @@ class MultiModalTransformer(nn.Module):
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         batch_size, seq_len = features.shape[0], 1
         
-        if features.dim() == 2 and features.shape[1] != self.hidden_size:
-            features = self.feature_projection(features)
+        # Initialize feature projection with correct input size on first forward pass
+        if self.feature_projection is None:
+            input_size = features.shape[-1]
+            self.feature_projection = nn.Linear(input_size, self.hidden_size)
+            if features.is_cuda:
+                self.feature_projection = self.feature_projection.cuda()
+        
+        # Project features to hidden size
+        features = self.feature_projection(features)
             
         if features.dim() == 2:
             features = features.unsqueeze(1)
