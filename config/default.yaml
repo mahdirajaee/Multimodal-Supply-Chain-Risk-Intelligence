@@ -1,0 +1,79 @@
+mode: train
+seed: 42
+
+data:
+  satellite:
+    source: "sentinel-2"
+    resolution: 10
+    cache_dir: "./data/cache/satellite"
+  social:
+    twitter_api_key: "${oc.env:TWITTER_API_KEY}"
+    reddit_client_id: "${oc.env:REDDIT_CLIENT_ID}"
+    cache_dir: "./data/cache/social"
+  weather:
+    api_key: "${oc.env:WEATHER_API_KEY}"
+    cache_dir: "./data/cache/weather"
+  economic:
+    sources: ["fred", "world_bank", "yahoo_finance"]
+    cache_dir: "./data/cache/economic"
+  news:
+    api_key: "${oc.env:NEWS_API_KEY}"
+    sources: ["reuters", "bloomberg", "ap"]
+    cache_dir: "./data/cache/news"
+
+models:
+  satellite_model:
+    type: "vision_transformer"
+    pretrained: "google/vit-base-patch16-224"
+    num_classes: 5
+    learning_rate: 1e-4
+    batch_size: 16
+  sentiment_model:
+    type: "bert"
+    pretrained: "bert-base-uncased"
+    num_classes: 3
+    learning_rate: 2e-5
+    batch_size: 32
+  weather_model:
+    type: "lstm"
+    hidden_size: 128
+    num_layers: 2
+    learning_rate: 1e-3
+    batch_size: 64
+  economic_model:
+    type: "transformer"
+    d_model: 512
+    nhead: 8
+    num_layers: 6
+    learning_rate: 1e-4
+    batch_size: 32
+  news_model:
+    type: "roberta"
+    pretrained: "roberta-base"
+    num_classes: 4
+    learning_rate: 1e-5
+    batch_size: 16
+
+fusion:
+  architecture: "multimodal_transformer"
+  hidden_size: 512
+  num_attention_heads: 8
+  num_layers: 4
+  dropout: 0.1
+  learning_rate: 5e-5
+  weight_decay: 0.01
+
+training:
+  epochs: 100
+  patience: 10
+  save_best: true
+  checkpoint_dir: "./checkpoints"
+
+prediction:
+  timeframe: 30
+  confidence_threshold: 0.7
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
