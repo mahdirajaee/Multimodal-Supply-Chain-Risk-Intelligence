@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: supply-chain-risk
+  labels:
+    app: supply-chain-risk-intelligence
+    version: v1.0.0
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: supply-chain-config
+  namespace: supply-chain-risk
+data:
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  DASHBOARD_PORT: "8501"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  ENABLE_METRICS: "true"
+  BACKUP_ENABLED: "true"
+  MAINTENANCE_ENABLED: "true"
+  POSTGRES_DB: "supply_chain_risk"
+  POSTGRES_USER: "postgres"
+  REDIS_DB: "0"
+  CACHE_TTL: "3600"
+  CACHE_NAMESPACE: "supply_chain_risk"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: supply-chain-secrets
+  namespace: supply-chain-risk
+type: Opaque
+data:
+  # Base64 encoded values - replace with actual encoded secrets
+  API_KEY: eW91ci1zZWN1cmUtYXBpLWtleS1oZXJl  # your-secure-api-key-here
+  SECRET_KEY: eW91ci1zdXBlci1zZWNyZXQta2V5LWhlcmUtbWluLTMyLWNoYXJz  # your-super-secret-key-here-min-32-chars
+  POSTGRES_PASSWORD: cG9zdGdyZXM=  # postgres
+  JWT_SECRET_KEY: and1dC1zZWNyZXQta2V5LWZvci1qd3Q=  # jwt-secret-key-for-jwt
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: supply-chain-risk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: supply-chain-risk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data-pvc
+  namespace: supply-chain-risk
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard

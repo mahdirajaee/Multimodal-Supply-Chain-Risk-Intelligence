@@ -1,0 +1,177 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: supply-chain-api
+  namespace: supply-chain-risk
+  labels:
+    app: supply-chain-api
+    component: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: supply-chain-api
+  template:
+    metadata:
+      labels:
+        app: supply-chain-api
+        component: backend
+    spec:
+      containers:
+      - name: api
+        image: supply-chain-risk:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: PYTHONPATH
+          value: "/app"
+        - name: API_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: API_HOST
+        - name: API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: API_PORT
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: LOG_LEVEL
+        - name: ENABLE_METRICS
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: ENABLE_METRICS
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: supply-chain-secrets
+              key: API_KEY
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: supply-chain-secrets
+              key: SECRET_KEY
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: supply-chain-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: POSTGRES_DB
+        - name: REDIS_URL
+          value: "redis://redis:6379/$(REDIS_DB)"
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: supply-chain-config
+              key: REDIS_DB
+        volumeMounts:
+        - name: app-data
+          mountPath: /app/data
+        - name: app-logs
+          mountPath: /app/logs
+        - name: app-checkpoints
+          mountPath: /app/checkpoints
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+      volumes:
+      - name: app-data
+        persistentVolumeClaim:
+          claimName: app-data-pvc
+      - name: app-logs
+        emptyDir: {}
+      - name: app-checkpoints
+        emptyDir: {}
+      securityContext:
+        fsGroup: 1000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supply-chain-api
+  namespace: supply-chain-risk
+  labels:
+    app: supply-chain-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app: supply-chain-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: supply-chain-api-hpa
+  namespace: supply-chain-risk
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: supply-chain-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

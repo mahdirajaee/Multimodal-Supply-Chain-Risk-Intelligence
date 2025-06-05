@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-script
+  namespace: supply-chain-risk
+data:
+  backup.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Starting backup process..."
+    
+    # Database backup
+    pg_dump $DATABASE_URL > /backups/db_backup_$(date +%Y%m%d_%H%M%S).sql
+    
+    # Compress backup
+    gzip /backups/db_backup_$(date +%Y%m%d_%H%M%S).sql
+    
+    # Cleanup old backups (keep last 7 days)
+    find /backups -name "*.gz" -mtime +7 -delete
+    
+    echo "Backup completed successfully"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: supply-chain-risk
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: postgres:15-alpine
+            command:
+            - /bin/bash
+            - /scripts/backup.sh
+            env:
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: supply-chain-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supply-chain-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: supply-chain-config
+                  key: POSTGRES_DB
+            volumeMounts:
+            - name: backup-script
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+          volumes:
+          - name: backup-script
+            configMap:
+              name: backup-script
+              defaultMode: 0755
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-pvc
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-pvc
+  namespace: supply-chain-risk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: maintenance-tasks
+  namespace: supply-chain-risk
+spec:
+  schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: maintenance
+            image: supply-chain-risk:latest
+            command:
+            - python
+            - scripts/maintenance_service.py
+            - --maintenance
+            env:
+            - name: PYTHONPATH
+              value: "/app"
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: supply-chain-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: supply-chain-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: supply-chain-config
+                  key: POSTGRES_DB
+            - name: REDIS_URL
+              value: "redis://redis:6379/$(REDIS_DB)"
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: supply-chain-config
+                  key: REDIS_DB
+            volumeMounts:
+            - name: app-data
+              mountPath: /app/data
+            - name: app-logs
+              mountPath: /app/logs
+          volumes:
+          - name: app-data
+            persistentVolumeClaim:
+              claimName: app-data-pvc
+          - name: app-logs
+            emptyDir: {}
+          restartPolicy: OnFailure

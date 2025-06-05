@@ -1,0 +1,149 @@
+# Alert Rules for Supply Chain Risk Intelligence System
+groups:
+  - name: supply_chain_api_alerts
+    rules:
+      - alert: APIHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High error rate detected in Supply Chain API"
+          description: "API error rate is {{ $value }} errors per second for the last 5 minutes"
+
+      - alert: APIHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "High latency detected in Supply Chain API"
+          description: "95th percentile latency is {{ $value }}s for the last 5 minutes"
+
+      - alert: APIDown
+        expr: up{job="supply-chain-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "Supply Chain API is down"
+          description: "Supply Chain API has been down for more than 1 minute"
+
+  - name: supply_chain_risk_alerts
+    rules:
+      - alert: HighRiskPrediction
+        expr: supply_chain_risk_score > 0.8
+        for: 0m
+        labels:
+          severity: critical
+          type: risk
+        annotations:
+          summary: "High risk prediction detected"
+          description: "Risk score is {{ $value }}, which exceeds the critical threshold of 0.8"
+
+      - alert: ModelAccuracyDegraded
+        expr: model_accuracy < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          type: model
+        annotations:
+          summary: "Model accuracy degraded"
+          description: "Model accuracy has dropped to {{ $value }}, below the acceptable threshold of 0.7"
+
+      - alert: DataQualityIssue
+        expr: data_quality_score < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          type: data
+        annotations:
+          summary: "Data quality issue detected"
+          description: "Data quality score is {{ $value }}, below the acceptable threshold of 0.8"
+
+  - name: infrastructure_alerts
+    rules:
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database has been unreachable for more than 2 minutes"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been unreachable for more than 2 minutes"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          type: resource
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanizePercentage }} for more than 5 minutes"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          type: resource
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% for more than 5 minutes"
+
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          type: resource
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value }}% available"
+
+  - name: business_logic_alerts
+    rules:
+      - alert: UnusualTrafficPattern
+        expr: rate(http_requests_total[5m]) > 2 * rate(http_requests_total[1h] offset 1h)
+        for: 10m
+        labels:
+          severity: warning
+          type: traffic
+        annotations:
+          summary: "Unusual traffic pattern detected"
+          description: "Current traffic rate is significantly higher than historical average"
+
+      - alert: PredictionQueueBacklog
+        expr: prediction_queue_size > 100
+        for: 5m
+        labels:
+          severity: warning
+          type: processing
+        annotations:
+          summary: "Prediction queue backlog"
+          description: "Prediction queue has {{ $value }} items, processing may be delayed"
+
+      - alert: FailedPredictions
+        expr: rate(failed_predictions_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          type: prediction
+        annotations:
+          summary: "High prediction failure rate"
+          description: "Prediction failure rate is {{ $value }} per second"

@@ -1,0 +1,104 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: supply-chain-ingress
+  namespace: supply-chain-risk
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: supply-chain-risk.local
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: supply-chain-api
+            port:
+              number: 8000
+      - path: /dashboard
+        pathType: Prefix
+        backend:
+          service:
+            name: supply-chain-dashboard
+            port:
+              number: 8501
+      - path: /monitoring
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus
+            port:
+              number: 9090
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: supply-chain-dashboard
+            port:
+              number: 8501
+  # Uncomment and configure for HTTPS
+  # tls:
+  # - hosts:
+  #   - supply-chain-risk.local
+  #   secretName: supply-chain-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supply-chain-api-nodeport
+  namespace: supply-chain-risk
+  labels:
+    app: supply-chain-api
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30080
+    name: http
+  selector:
+    app: supply-chain-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: supply-chain-dashboard-nodeport
+  namespace: supply-chain-risk
+  labels:
+    app: supply-chain-dashboard
+spec:
+  type: NodePort
+  ports:
+  - port: 8501
+    targetPort: 8501
+    nodePort: 30081
+    name: http
+  selector:
+    app: supply-chain-dashboard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-nodeport
+  namespace: supply-chain-risk
+  labels:
+    app: prometheus
+spec:
+  type: NodePort
+  ports:
+  - port: 9090
+    targetPort: 9090
+    nodePort: 30090
+    name: web
+  selector:
+    app: prometheus

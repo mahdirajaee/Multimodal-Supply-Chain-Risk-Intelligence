@@ -1,0 +1,101 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Supply Chain Risk Intelligence - Overview",
+    "tags": ["supply-chain", "risk", "overview"],
+    "style": "dark",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Risk Score Distribution",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg(supply_chain_risk_score)",
+            "format": "time_series",
+            "legendFormat": "Average Risk Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 0.8}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "API Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "format": "time_series",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Prediction Accuracy",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "model_accuracy",
+            "format": "time_series",
+            "legendFormat": "Model Accuracy"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Data Quality Score",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "data_quality_score",
+            "format": "time_series",
+            "legendFormat": "Data Quality"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "format": "time_series",
+            "legendFormat": "95th Percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "format": "time_series",
+            "legendFormat": "50th Percentile"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s"
+  }
+}
