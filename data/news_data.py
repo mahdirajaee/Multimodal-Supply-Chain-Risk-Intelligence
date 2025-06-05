@@ -15,7 +15,7 @@ class NewsDataLoader:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.api_key = config.get('api_key')
-        self.sources = config.sources
+        self.sources = config['sources']
         self.tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         
     def load_historical_data(self) -> None:

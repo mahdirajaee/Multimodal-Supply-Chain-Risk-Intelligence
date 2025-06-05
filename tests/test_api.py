@@ -52,11 +52,11 @@ class TestAPI(unittest.TestCase):
                 'confidence': 0.8
             },
             'individual_predictions': {
-                'satellite': [0.1, 0.2, 0.3, 0.2, 0.2],
-                'sentiment': [0.3, 0.4, 0.3],
-                'weather': [0.5],
-                'economic': [0.4],
-                'news': [0.2, 0.3, 0.3, 0.2]
+                'satellite': 0.2,
+                'sentiment': 0.35,
+                'weather': 0.5,
+                'economic': 0.4,
+                'news': 0.25
             },
             'recommendations': ['Monitor key suppliers closely']
         }

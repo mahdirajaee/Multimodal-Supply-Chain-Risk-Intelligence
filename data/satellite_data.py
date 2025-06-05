@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class SatelliteDataLoader:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.cache_dir = Path(config.cache_dir)
+        self.cache_dir = Path(config['cache_dir'])
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.transform = transforms.Compose([
             transforms.ToPILImage(),

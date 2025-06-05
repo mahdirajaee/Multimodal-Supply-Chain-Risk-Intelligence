@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class EconomicDataLoader:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.sources = config.sources
+        self.sources = config['sources']
         
     def load_historical_data(self) -> None:
         logger.info("Loading historical economic data")

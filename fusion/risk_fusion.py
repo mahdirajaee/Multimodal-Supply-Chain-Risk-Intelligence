@@ -11,10 +11,10 @@ class RiskFusionEngine:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.fusion_model = MultiModalTransformer(
-            hidden_size=config.hidden_size,
-            num_attention_heads=config.num_attention_heads,
-            num_layers=config.num_layers,
-            dropout=config.dropout
+            hidden_size=config['hidden_size'],
+            num_attention_heads=config['num_attention_heads'],
+            num_layers=config['num_layers'],
+            dropout=config['dropout']
         )
         self.risk_weights = {
             'satellite': 0.25,
